@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}{{ league.name if league else 'League' }} - NelsonPredicts{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if league %}
+    <!-- League Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card league-header">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            {% if league.logo_url and not lightweight_mode %}
+                            <img src="{{ league.logo_url }}" alt="{{ league.name }} logo" class="league-logo mb-2" style="max-height: 80px;">
+                            {% else %}
+                            <i class="fas fa-trophy fa-3x text-warning mb-2"></i>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h1 class="mb-2">{{ league.name }}</h1>
+                            <p class="text-muted mb-2">
+                                {% if league.country %}
+                                <i class="fas fa-flag me-1"></i>{{ league.country }}
+                                {% endif %}
+                                {% if league.season %}
+                                <span class="ms-3"><i class="fas fa-calendar me-1"></i>{{ league.season }}</span>
+                                {% endif %}
+                            </p>
+                            {% if league.flag_url and not lightweight_mode %}
+                            <img src="{{ league.flag_url }}" alt="{{ league.country }} flag" class="country-flag" style="height: 20px;">
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">League Stats</h5>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <h4 class="text-primary">{{ standings|length }}</h4>
+                                            <small class="text-muted">Teams</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h4 class="text-success">{{ fixtures|length }}</h4>
+                                            <small class="text-muted">Fixtures</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Standings -->
+        <div class="col-lg-8">
+            <!-- League Table -->
+            {% if standings %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>League Table</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="tableType" id="overallTable" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="overallTable">Overall</label>
+                            <input type="radio" class="btn-check" name="tableType" id="homeTable" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="homeTable">Home</label>
+                            <input type="radio" class="btn-check" name="tableType" id="awayTable" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="awayTable">Away</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0" id="standingsTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th>Team</th>
+                                    <th class="text-center">P</th>
+                                    <th class="text-center">W</th>
+                                    <th class="text-center">D</th>
+                                    <th class="text-center">L</th>
+                                    <th class="text-center">GF</th>
+                                    <th class="text-center">GA</th>
+                                    <th class="text-center">GD</th>
+                                    <th class="text-center">Pts</th>
+                                    <th class="text-center">Form</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for standing in standings %}
+                                <tr class="standing-row {% if standing.position <= 4 %}table-success{% elif standing.position <= 6 %}table-info{% elif standing.position >= (standings|length - 2) %}table-danger{% endif %}">
+                                    <td class="text-center fw-bold">{{ standing.position }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if standing.team.logo_url and not lightweight_mode %}
+                                            <img src="{{ standing.team.logo_url }}" alt="{{ standing.team.name }}" class="team-logo-small me-2" style="width: 24px; height: 24px;">
+                                            {% endif %}
+                                            <a href="/team/{{ standing.team.id }}" class="text-decoration-none fw-bold">
+                                                {{ standing.team.name }}
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">{{ standing.wins + standing.draws + standing.losses }}</td>
+                                    <td class="text-center text-success">{{ standing.wins }}</td>
+                                    <td class="text-center text-warning">{{ standing.draws }}</td>
+                                    <td class="text-center text-danger">{{ standing.losses }}</td>
+                                    <td class="text-center">{{ standing.goals_for }}</td>
+                                    <td class="text-center">{{ standing.goals_against }}</td>
+                                    <td class="text-center {% if standing.goal_difference > 0 %}text-success{% elif standing.goal_difference < 0 %}text-danger{% endif %}">
+                                        {% if standing.goal_difference > 0 %}+{% endif %}{{ standing.goal_difference }}
+                                    </td>
+                                    <td class="text-center fw-bold">{{ standing.points }}</td>
+                                    <td class="text-center">
+                                        <!-- Form indicators (simplified) -->
+                                        {% set total_games = standing.wins + standing.draws + standing.losses %}
+                                        {% if total_games > 0 %}
+                                            {% set win_rate = (standing.wins / total_games * 100) %}
+                                            {% if win_rate >= 60 %}
+                                            <span class="badge bg-success">Excellent</span>
+                                            {% elif win_rate >= 40 %}
+                                            <span class="badge bg-warning">Good</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Poor</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <small class="text-success">
+                                <i class="fas fa-square me-1"></i>Champions League
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-info">
+                                <i class="fas fa-square me-1"></i>Europa League
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-warning">
+                                <i class="fas fa-square me-1"></i>Conference League
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-danger">
+                                <i class="fas fa-square me-1"></i>Relegation
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Top Scorers -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-medal me-2"></i>Top Scorers</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Goals</h6>
+                            <div class="list-group list-group-flush">
+                                <!-- This would be populated with actual top scorer data -->
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>Top Scorer Data</strong>
+                                        <br><small class="text-muted">Team Name</small>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">Goals</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Assists</h6>
+                            <div class="list-group list-group-flush">
+                                <!-- This would be populated with actual assist data -->
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>Top Assist Data</strong>
+                                        <br><small class="text-muted">Team Name</small>
+                                    </div>
+                                    <span class="badge bg-info rounded-pill">Assists</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Recent Fixtures -->
+        <div class="col-lg-4">
+            <!-- Recent Fixtures -->
+            {% if fixtures %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Recent Fixtures</h5>
+                </div>
+                <div class="card-body">
+                    {% for fixture in fixtures[:10] %}
+                    <div class="fixture-item mb-2 p-2 border rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <small class="text-muted d-block">
+                                    {{ fixture.kickoff_time.strftime('%d/%m %H:%M') }}
+                                </small>
+                                <div class="fw-bold small">
+                                    {{ fixture.home_team.name[:15] }}...
+                                    {% if fixture.status == 'Finished' %}
+                                    {{ fixture.home_score }}-{{ fixture.away_score }}
+                                    {% else %}
+                                    vs
+                                    {% endif %}
+                                    {{ fixture.away_team.name[:15] }}...
+                                </div>
+                            </div>
+                            <div>
+                                {% if fixture.status == 'Finished' %}
+                                <span class="badge bg-success">FT</span>
+                                {% elif fixture.status == 'In Progress' %}
+                                <span class="badge bg-danger">Live</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ fixture.kickoff_time.strftime('%H:%M') }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Prediction Info -->
+                        {% set prediction = fixture.predictions[0] if fixture.predictions else None %}
+                        {% if prediction and fixture.status == 'Not Started' %}
+                        <div class="mt-1">
+                            <small class="text-muted">
+                                Prediction: 
+                                {% if prediction.confidence >= 70 %}
+                                <span class="text-success">🟢 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                                {% elif prediction.confidence >= 50 %}
+                                <span class="text-warning">🟡 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                                {% else %}
+                                <span class="text-danger">🔴 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('fixtures') }}?league={{ league.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>View All Fixtures
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- League Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>League Statistics</h5>
+                </div>
+                <div class="card-body">
+                    {% if standings %}
+                    <div class="stat-item mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Total Goals:</span>
+                            <strong>{{ standings|sum(attribute='goals_for') }}</strong>
+                        </div>
+                    </div>
+                    <div class="stat-item mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Avg Goals/Game:</span>
+                            <strong>{{ "%.2f"|format((standings|sum(attribute='goals_for')) / (standings|length * (standings[0].wins + standings[0].draws + standings[0].losses)) if standings and (standings[0].wins + standings[0].draws + standings[0].losses) > 0 else 0) }}</strong>
+                        </div>
+                    </div>
+                    <div class="stat-item mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Most Goals:</span>
+                            <strong>{{ standings|max(attribute='goals_for')|attr('team')|attr('name') if standings else 'N/A' }}</strong>
+                        </div>
+                    </div>
+                    <div class="stat-item mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Best Defense:</span>
+                            <strong>{{ standings|min(attribute='goals_against')|attr('team')|attr('name') if standings else 'N/A' }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Goals Chart -->
+                    <canvas id="leagueStatsChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Error State -->
+    <div class="text-center py-5">
+        <i class="fas fa-trophy fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">{{ error if error else 'League not found' }}</h4>
+        <p class="text-muted">The requested league could not be loaded</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-home me-1"></i>Back to Home
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Table type toggle
+    document.querySelectorAll('input[name="tableType"]').forEach(input => {
+        input.addEventListener('change', function() {
+            const tableType = this.id;
+            // Here you would load different table data (home/away form)
+            console.log('Table type changed to:', tableType);
+            
+            // For now, just highlight the change
+            const table = document.getElementById('standingsTable');
+            if (table) {
+                table.style.opacity = '0.7';
+                setTimeout(() => {
+                    table.style.opacity = '1';
+                }, 300);
+            }
+        });
+    });
+    
+    // League Statistics Chart
+    const ctx = document.getElementById('leagueStatsChart');
+    if (ctx) {
+        // Sample data - this would come from actual league statistics
+        const teams = [{% for standing in standings %}'{{ standing.team.name[:8] }}'{% if not loop.last %},{% endif %}{% endfor %}];
+        const goalsFor = [{% for standing in standings %}{{ standing.goals_for }}{% if not loop.last %},{% endif %}{% endfor %}];
+        const goalsAgainst = [{% for standing in standings %}{{ standing.goals_against }}{% if not loop.last %},{% endif %}{% endfor %}];
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: teams.slice(0, 10), // Top 10 teams
+                datasets: [{
+                    label: 'Goals For',
+                    data: goalsFor.slice(0, 10),
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Goals Against',
+                    data: goalsAgainst.slice(0, 10),
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Goals For vs Against (Top 10)'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

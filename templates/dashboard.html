@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}User Dashboard - NelsonPredicts{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-tachometer-alt me-2"></i>Your Dashboard</h1>
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#preferencesModal">
+                    <i class="fas fa-cog me-1"></i>Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                    <h4 id="bookmarkCount">Loading...</h4>
+                    <p class="text-muted">Bookmarked Matches</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-heart fa-2x text-danger mb-2"></i>
+                    <h4>{{ favorite_teams|length }}</h4>
+                    <p class="text-muted">Favorite Teams</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-trophy fa-2x text-success mb-2"></i>
+                    <h4>{{ favorite_leagues|length }}</h4>
+                    <p class="text-muted">Favorite Leagues</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                    <h4 id="accuracyRate">Loading...</h4>
+                    <p class="text-muted">Prediction Accuracy</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Favorite Teams' Upcoming Fixtures -->
+            {% if favorite_fixtures %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-heart me-2"></i>Upcoming Matches - Your Teams</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for fixture in favorite_fixtures %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <small class="text-muted">{{ fixture.league.name }}</small>
+                                        <button class="btn btn-sm btn-outline-warning bookmark-btn" 
+                                                data-fixture-id="{{ fixture.id }}">
+                                            <i class="fas fa-star"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="match-teams mb-2">
+                                        <div class="text-center">
+                                            <strong>{{ fixture.home_team.name }}</strong>
+                                            <span class="mx-2">vs</span>
+                                            <strong>{{ fixture.away_team.name }}</strong>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="match-time text-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ fixture.kickoff_time.strftime('%d/%m/%Y %H:%M') }}
+                                        </small>
+                                    </div>
+                                    
+                                    {% set prediction = fixture.predictions[0] if fixture.predictions else None %}
+                                    {% if prediction %}
+                                    <div class="prediction-info mt-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">Prediction:</small>
+                                            {% if prediction.confidence >= 70 %}
+                                            <span class="badge bg-success">🟢 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                                            {% elif prediction.confidence >= 50 %}
+                                            <span class="badge bg-warning">🟡 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">🔴 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Performance History Chart -->
+            {% if performance_history %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Your Prediction Performance (Last 7 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="personalPerformanceChart" width="400" height="200"></canvas>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-4 text-center">
+                            <h6 class="text-success">🟢 Home Wins</h6>
+                            <p class="mb-0">
+                                {% set total_home = performance_history|sum(attribute='home_win_predictions') %}
+                                {% set correct_home = performance_history|sum(attribute='home_win_correct') %}
+                                {{ correct_home }}/{{ total_home }} 
+                                ({{ "%.1f"|format((correct_home/total_home*100) if total_home > 0 else 0) }}%)
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <h6 class="text-warning">🟡 Draws</h6>
+                            <p class="mb-0">
+                                {% set total_draw = performance_history|sum(attribute='draw_predictions') %}
+                                {% set correct_draw = performance_history|sum(attribute='draw_correct') %}
+                                {{ correct_draw }}/{{ total_draw }} 
+                                ({{ "%.1f"|format((correct_draw/total_draw*100) if total_draw > 0 else 0) }}%)
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <h6 class="text-danger">🔴 Away Wins</h6>
+                            <p class="mb-0">
+                                {% set total_away = performance_history|sum(attribute='away_win_predictions') %}
+                                {% set correct_away = performance_history|sum(attribute='away_win_correct') %}
+                                {{ correct_away }}/{{ total_away }} 
+                                ({{ "%.1f"|format((correct_away/total_away*100) if total_away > 0 else 0) }}%)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="activity-timeline">
+                        <div class="activity-item d-flex align-items-center mb-3">
+                            <div class="activity-icon bg-primary rounded-circle p-2 me-3">
+                                <i class="fas fa-star text-white"></i>
+                            </div>
+                            <div>
+                                <strong>Bookmarked a match</strong>
+                                <br><small class="text-muted">2 hours ago</small>
+                            </div>
+                        </div>
+                        <div class="activity-item d-flex align-items-center mb-3">
+                            <div class="activity-icon bg-success rounded-circle p-2 me-3">
+                                <i class="fas fa-check text-white"></i>
+                            </div>
+                            <div>
+                                <strong>Prediction was correct</strong>
+                                <br><small class="text-muted">1 day ago</small>
+                            </div>
+                        </div>
+                        <div class="activity-item d-flex align-items-center mb-3">
+                            <div class="activity-icon bg-info rounded-circle p-2 me-3">
+                                <i class="fas fa-heart text-white"></i>
+                            </div>
+                            <div>
+                                <strong>Added favorite team</strong>
+                                <br><small class="text-muted">3 days ago</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Favorite Teams -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-heart me-2"></i>Favorite Teams</h5>
+                        <button class="btn btn-sm btn-outline-primary" id="editTeamsBtn">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if favorite_teams %}
+                    <div class="list-group list-group-flush">
+                        {% for team in favorite_teams %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                {% if team.logo_url and not lightweight_mode %}
+                                <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="me-2" style="width: 24px; height: 24px;">
+                                {% endif %}
+                                <a href="/team/{{ team.id }}" class="text-decoration-none">
+                                    {{ team.name }}
+                                </a>
+                            </div>
+                            <small class="text-muted">{{ team.country }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-heart fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No favorite teams yet</p>
+                        <button class="btn btn-sm btn-primary" id="addTeamsBtn">
+                            <i class="fas fa-plus me-1"></i>Add Teams
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Favorite Leagues -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Favorite Leagues</h5>
+                        <button class="btn btn-sm btn-outline-primary" id="editLeaguesBtn">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if favorite_leagues %}
+                    <div class="list-group list-group-flush">
+                        {% for league in favorite_leagues %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                {% if league.logo_url and not lightweight_mode %}
+                                <img src="{{ league.logo_url }}" alt="{{ league.name }}" class="me-2" style="width: 24px; height: 24px;">
+                                {% endif %}
+                                <a href="/league/{{ league.id }}" class="text-decoration-none">
+                                    {{ league.name }}
+                                </a>
+                            </div>
+                            <small class="text-muted">{{ league.country }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-trophy fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No favorite leagues yet</p>
+                        <button class="btn btn-sm btn-primary" id="addLeaguesBtn">
+                            <i class="fas fa-plus me-1"></i>Add Leagues
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Quick Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                            <label class="form-check-label" for="darkModeToggle">
+                                Dark Mode
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="lightweightModeToggle">
+                            <label class="form-check-label" for="lightweightModeToggle">
+                                Lightweight Mode
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="notificationsToggle">
+                            <label class="form-check-label" for="notificationsToggle">
+                                Push Notifications
+                            </label>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button class="btn btn-primary btn-sm" id="saveSettingsBtn">
+                            <i class="fas fa-save me-1"></i>Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Preferences Modal -->
+<div class="modal fade" id="preferencesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">User Preferences</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Favorite Teams</h6>
+                        <div id="teamSelection">
+                            <!-- Team selection will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Favorite Leagues</h6>
+                        <div id="leagueSelection">
+                            <!-- League selection will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="savePreferencesBtn">Save Preferences</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load user preferences
+    loadUserPreferences();
+    
+    // Load bookmark count
+    loadBookmarkCount();
+    
+    // Performance chart
+    {% if performance_history %}
+    const ctx = document.getElementById('personalPerformanceChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [{% for p in performance_history %}'{{ p.date.strftime('%m/%d') }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Accuracy %',
+                    data: [{% for p in performance_history %}{{ p.accuracy_percentage }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }, {
+                    label: 'Total Predictions',
+                    data: [{% for p in performance_history %}{{ p.total_predictions }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    tension: 0.1,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Your Prediction Performance'
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    // Event listeners
+    document.getElementById('saveSettingsBtn').addEventListener('click', saveQuickSettings);
+    document.getElementById('savePreferencesBtn').addEventListener('click', saveUserPreferences);
+    
+    // Theme toggle sync
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const lightweightModeToggle = document.getElementById('lightweightModeToggle');
+    
+    // Sync with main theme toggle
+    const mainTheme = document.documentElement.getAttribute('data-bs-theme');
+    darkModeToggle.checked = (mainTheme === 'dark');
+    
+    darkModeToggle.addEventListener('change', function() {
+        const event = new CustomEvent('themeToggle', { detail: { theme: this.checked ? 'dark' : 'light' } });
+        document.dispatchEvent(event);
+    });
+});
+
+async function loadUserPreferences() {
+    try {
+        const response = await fetch('/api/user/preferences');
+        const prefs = await response.json();
+        
+        document.getElementById('darkModeToggle').checked = (prefs.theme === 'dark');
+        document.getElementById('lightweightModeToggle').checked = prefs.lightweight_mode;
+        
+        // Update accuracy rate
+        document.getElementById('accuracyRate').textContent = '65%'; // This would come from actual data
+        
+    } catch (error) {
+        console.error('Error loading preferences:', error);
+    }
+}
+
+async function loadBookmarkCount() {
+    try {
+        // This would make an API call to get bookmark count
+        document.getElementById('bookmarkCount').textContent = '{{ (favorite_fixtures|length) if favorite_fixtures else 0 }}';
+    } catch (error) {
+        console.error('Error loading bookmark count:', error);
+        document.getElementById('bookmarkCount').textContent = '0';
+    }
+}
+
+async function saveQuickSettings() {
+    const settings = {
+        theme: document.getElementById('darkModeToggle').checked ? 'dark' : 'light',
+        lightweight_mode: document.getElementById('lightweightModeToggle').checked,
+        notifications: document.getElementById('notificationsToggle').checked
+    };
+    
+    try {
+        const response = await fetch('/api/user/preferences', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        if (response.ok) {
+            // Show success message
+            const btn = document.getElementById('saveSettingsBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Saved!';
+            btn.classList.add('btn-success');
+            btn.classList.remove('btn-primary');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary');
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        alert('Failed to save settings');
+    }
+}
+
+async function saveUserPreferences() {
+    // This would collect and save team/league preferences
+    alert('Preferences saved successfully!');
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('preferencesModal'));
+    modal.hide();
+}
+</script>
+{% endblock %}

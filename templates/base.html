@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NelsonPredicts - Ultimate Football Intelligence{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Moment.js for date handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+                <i class="fas fa-chart-line me-2"></i>NelsonPredicts
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('fixtures') }}">
+                            <i class="fas fa-calendar-alt me-1"></i>Fixtures
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('bookmarks') }}">
+                            <i class="fas fa-star me-1"></i>Bookmarks
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('prediction_calendar') }}">
+                            <i class="fas fa-calendar me-1"></i>Calendar
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Search Bar -->
+                <div class="d-flex me-3">
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" 
+                               class="form-control" 
+                               id="globalSearch" 
+                               placeholder="Search teams, leagues, players...">
+                        <button class="btn btn-outline-light" type="button" id="searchBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="position-absolute bg-white border rounded shadow-sm mt-5 d-none" style="width: 300px; z-index: 1050;"></div>
+                </div>
+                
+                <!-- Theme Toggle -->
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-light me-2" id="themeToggle" title="Toggle theme">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                    
+                    <!-- Lightweight Mode Toggle -->
+                    <div class="form-check form-switch me-3">
+                        <input class="form-check-input" type="checkbox" id="lightweightMode">
+                        <label class="form-check-label text-light small" for="lightweightMode">
+                            Lite Mode
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-chart-line me-2"></i>NelsonPredicts</h5>
+                    <p class="text-muted">Ultimate football intelligence platform with AI-powered predictions, comprehensive statistics, and real-time updates.</p>
+                </div>
+                <div class="col-md-3">
+                    <h6>Features</h6>
+                    <ul class="list-unstyled text-muted">
+                        <li><i class="fas fa-check me-1"></i>Live Predictions</li>
+                        <li><i class="fas fa-check me-1"></i>Performance Tracking</li>
+                        <li><i class="fas fa-check me-1"></i>Confidence Meters</li>
+                        <li><i class="fas fa-check me-1"></i>Bookmark System</li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6>Data Sources</h6>
+                    <ul class="list-unstyled text-muted">
+                        <li><i class="fas fa-globe me-1"></i>10+ Prediction Sites</li>
+                        <li><i class="fas fa-globe me-1"></i>Multiple Bookmakers</li>
+                        <li><i class="fas fa-globe me-1"></i>Live Score Feeds</li>
+                        <li><i class="fas fa-globe me-1"></i>Official League Data</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">&copy; 2025 NelsonPredicts. All rights reserved.</small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">
+                        <span id="lastUpdate">Last updated: Loading...</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bookmarks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/performance.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

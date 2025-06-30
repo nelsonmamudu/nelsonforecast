@@ -1,0 +1,556 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Calendar - NelsonPredicts{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Calendar Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-calendar me-2"></i>Prediction Calendar</h1>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" id="monthViewBtn" onclick="switchView('month')">Month</button>
+                    <button type="button" class="btn btn-outline-primary active" id="weekViewBtn" onclick="switchView('week')">Week</button>
+                    <button type="button" class="btn btn-outline-primary" id="dayViewBtn" onclick="switchView('day')">Day</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-outline-secondary me-2" id="prevBtn">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary me-3" id="nextBtn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <h4 class="mb-0" id="currentPeriod">
+                                {{ current_month }} {{ current_year }}
+                            </h4>
+                        </div>
+                        
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-primary me-2" id="todayBtn">Today</button>
+                            <div class="input-group" style="width: 200px;">
+                                <input type="date" class="form-control" id="dateJump" value="{{ date.today().isoformat() }}">
+                                <button class="btn btn-outline-secondary" type="button" id="jumpToDateBtn">
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <label for="leagueFilter" class="form-label">League Filter</label>
+                            <select class="form-select" id="leagueFilter">
+                                <option value="">All Leagues</option>
+                                <option value="premier-league">Premier League</option>
+                                <option value="la-liga">La Liga</option>
+                                <option value="serie-a">Serie A</option>
+                                <option value="bundesliga">Bundesliga</option>
+                                <option value="ligue-1">Ligue 1</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="confidenceFilter" class="form-label">Confidence Level</label>
+                            <select class="form-select" id="confidenceFilter">
+                                <option value="">All Confidence</option>
+                                <option value="high">High (70%+)</option>
+                                <option value="medium">Medium (50-69%)</option>
+                                <option value="low">Low (<50%)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="predictionFilter" class="form-label">Prediction Type</label>
+                            <select class="form-select" id="predictionFilter">
+                                <option value="">All Predictions</option>
+                                <option value="home">Home Wins</option>
+                                <option value="draw">Draws</option>
+                                <option value="away">Away Wins</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-end h-100">
+                                <button class="btn btn-outline-secondary w-100" id="clearFiltersBtn">
+                                    <i class="fas fa-times me-1"></i>Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Legend -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-center flex-wrap gap-3">
+                <div class="d-flex align-items-center">
+                    <div class="confidence-dot bg-success me-2"></div>
+                    <small>High Confidence (70%+)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="confidence-dot bg-warning me-2"></div>
+                    <small>Medium Confidence (50-69%)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="confidence-dot bg-danger me-2"></div>
+                    <small>Low Confidence (<50%)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="confidence-dot bg-secondary me-2"></div>
+                    <small>No Prediction</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar View -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="calendar-container">
+                        <!-- Month View -->
+                        <div id="monthView" class="calendar-view">
+                            <div class="calendar-grid">
+                                <div class="calendar-header">
+                                    <div class="calendar-day-header">Sun</div>
+                                    <div class="calendar-day-header">Mon</div>
+                                    <div class="calendar-day-header">Tue</div>
+                                    <div class="calendar-day-header">Wed</div>
+                                    <div class="calendar-day-header">Thu</div>
+                                    <div class="calendar-day-header">Fri</div>
+                                    <div class="calendar-day-header">Sat</div>
+                                </div>
+                                <div id="calendarDays" class="calendar-days">
+                                    <!-- Calendar days will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Week View -->
+                        <div id="weekView" class="calendar-view d-none">
+                            <div id="weekViewContent">
+                                <!-- Week view will be populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Day View -->
+                        <div id="dayView" class="calendar-view d-none">
+                            <div id="dayViewContent">
+                                <!-- Day view will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Summary -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 id="totalMatches">0</h4>
+                    <p class="text-muted">Total Matches</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 id="highConfidenceMatches" class="text-success">0</h4>
+                    <p class="text-muted">High Confidence</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 id="avgConfidence">0%</h4>
+                    <p class="text-muted">Avg Confidence</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 id="predictionBreakdown">
+                        <small>H: 0 | D: 0 | A: 0</small>
+                    </h4>
+                    <p class="text-muted">Predictions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Match Details Modal -->
+<div class="modal fade" id="matchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Matches for <span id="modalDate"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalMatches">
+                    <!-- Match details will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="bookmarkAllBtn">
+                    <i class="fas fa-star me-1"></i>Bookmark All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script>
+// Calendar data from server
+const calendarData = {{ calendar_data | tojson if calendar_data else '{}' }};
+const currentMonth = {{ current_month if current_month else 'new Date().getMonth() + 1' }};
+const currentYear = {{ current_year if current_year else 'new Date().getFullYear()' }};
+
+// Initialize calendar
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCalendar();
+    
+    // Event listeners
+    document.getElementById('prevBtn').addEventListener('click', () => navigateCalendar(-1));
+    document.getElementById('nextBtn').addEventListener('click', () => navigateCalendar(1));
+    document.getElementById('todayBtn').addEventListener('click', goToToday);
+    document.getElementById('jumpToDateBtn').addEventListener('click', jumpToDate);
+    document.getElementById('clearFiltersBtn').addEventListener('click', clearAllFilters);
+    
+    // Filter listeners
+    document.getElementById('leagueFilter').addEventListener('change', applyFilters);
+    document.getElementById('confidenceFilter').addEventListener('change', applyFilters);
+    document.getElementById('predictionFilter').addEventListener('change', applyFilters);
+    
+    // Bookmark all button
+    document.getElementById('bookmarkAllBtn').addEventListener('click', bookmarkAllMatches);
+});
+
+let currentCalendarDate = new Date(currentYear, currentMonth - 1, 1);
+let currentView = 'month';
+
+function initializeCalendar() {
+    renderCalendar();
+    updateSummaryStats();
+}
+
+function renderCalendar() {
+    switch(currentView) {
+        case 'month':
+            renderMonthView();
+            break;
+        case 'week':
+            renderWeekView();
+            break;
+        case 'day':
+            renderDayView();
+            break;
+    }
+    
+    updatePeriodHeader();
+}
+
+function renderMonthView() {
+    const calendarDays = document.getElementById('calendarDays');
+    calendarDays.innerHTML = '';
+    
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startingDayOfWeek; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day empty';
+        calendarDays.appendChild(emptyDay);
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayElement = document.createElement('div');
+        dayElement.className = 'calendar-day';
+        dayElement.innerHTML = `<div class="day-number">${day}</div>`;
+        
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // Check if this date has matches
+        if (calendarData[dateKey]) {
+            const matches = calendarData[dateKey];
+            dayElement.classList.add('has-matches');
+            
+            // Add confidence indicators
+            const confidenceIndicators = document.createElement('div');
+            confidenceIndicators.className = 'confidence-indicators';
+            
+            matches.forEach(match => {
+                const dot = document.createElement('div');
+                dot.className = 'confidence-dot';
+                
+                if (match.prediction) {
+                    if (match.prediction.confidence >= 70) {
+                        dot.classList.add('bg-success');
+                    } else if (match.prediction.confidence >= 50) {
+                        dot.classList.add('bg-warning');
+                    } else {
+                        dot.classList.add('bg-danger');
+                    }
+                } else {
+                    dot.classList.add('bg-secondary');
+                }
+                
+                confidenceIndicators.appendChild(dot);
+            });
+            
+            dayElement.appendChild(confidenceIndicators);
+            
+            // Add click listener
+            dayElement.addEventListener('click', () => showDayMatches(dateKey, matches));
+            dayElement.style.cursor = 'pointer';
+        }
+        
+        // Highlight today
+        const today = new Date();
+        if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+            dayElement.classList.add('today');
+        }
+        
+        calendarDays.appendChild(dayElement);
+    }
+}
+
+function renderWeekView() {
+    // Implementation for week view
+    const weekContent = document.getElementById('weekViewContent');
+    weekContent.innerHTML = '<div class="p-4 text-center"><h5>Week View</h5><p class="text-muted">Weekly match schedule with detailed predictions</p></div>';
+}
+
+function renderDayView() {
+    // Implementation for day view
+    const dayContent = document.getElementById('dayViewContent');
+    dayContent.innerHTML = '<div class="p-4 text-center"><h5>Day View</h5><p class="text-muted">Detailed daily match schedule</p></div>';
+}
+
+function switchView(view) {
+    currentView = view;
+    
+    // Update button states
+    document.querySelectorAll('[id$="ViewBtn"]').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(view + 'ViewBtn').classList.add('active');
+    
+    // Show/hide views
+    document.querySelectorAll('.calendar-view').forEach(view => view.classList.add('d-none'));
+    document.getElementById(view + 'View').classList.remove('d-none');
+    
+    renderCalendar();
+}
+
+function navigateCalendar(direction) {
+    switch(currentView) {
+        case 'month':
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            break;
+        case 'week':
+            currentCalendarDate.setDate(currentCalendarDate.getDate() + (direction * 7));
+            break;
+        case 'day':
+            currentCalendarDate.setDate(currentCalendarDate.getDate() + direction);
+            break;
+    }
+    
+    renderCalendar();
+}
+
+function goToToday() {
+    currentCalendarDate = new Date();
+    renderCalendar();
+}
+
+function jumpToDate() {
+    const dateInput = document.getElementById('dateJump');
+    const selectedDate = new Date(dateInput.value);
+    
+    if (selectedDate instanceof Date && !isNaN(selectedDate)) {
+        currentCalendarDate = selectedDate;
+        renderCalendar();
+    }
+}
+
+function updatePeriodHeader() {
+    const periodElement = document.getElementById('currentPeriod');
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    switch(currentView) {
+        case 'month':
+            periodElement.textContent = `${months[currentCalendarDate.getMonth()]} ${currentCalendarDate.getFullYear()}`;
+            break;
+        case 'week':
+            periodElement.textContent = `Week of ${currentCalendarDate.toLocaleDateString()}`;
+            break;
+        case 'day':
+            periodElement.textContent = currentCalendarDate.toLocaleDateString();
+            break;
+    }
+}
+
+function showDayMatches(dateKey, matches) {
+    const modal = new bootstrap.Modal(document.getElementById('matchModal'));
+    const modalDate = document.getElementById('modalDate');
+    const modalMatches = document.getElementById('modalMatches');
+    
+    modalDate.textContent = new Date(dateKey).toLocaleDateString();
+    modalMatches.innerHTML = '';
+    
+    matches.forEach(match => {
+        const matchCard = document.createElement('div');
+        matchCard.className = 'card mb-2';
+        matchCard.innerHTML = `
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <small class="text-muted">${match.fixture.league.name}</small>
+                    <small class="text-muted">${new Date(match.fixture.kickoff_time).toLocaleTimeString()}</small>
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-5 text-end">
+                        <strong>${match.fixture.home_team.name}</strong>
+                    </div>
+                    <div class="col-2 text-center">
+                        <span class="badge bg-dark">VS</span>
+                    </div>
+                    <div class="col-5">
+                        <strong>${match.fixture.away_team.name}</strong>
+                    </div>
+                </div>
+                ${match.prediction ? `
+                <div class="mt-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small>Prediction:</small>
+                        <span class="badge ${match.confidence_color}">
+                            ${match.confidence_display}
+                        </span>
+                    </div>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar ${match.confidence_color}" style="width: ${match.prediction.confidence}%"></div>
+                    </div>
+                </div>
+                ` : ''}
+                <div class="d-flex justify-content-between mt-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewMatchDetails(${match.fixture.id})">
+                        <i class="fas fa-eye me-1"></i>Details
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning bookmark-btn" data-fixture-id="${match.fixture.id}">
+                        <i class="fas fa-star me-1"></i>Bookmark
+                    </button>
+                </div>
+            </div>
+        `;
+        modalMatches.appendChild(matchCard);
+    });
+    
+    modal.show();
+}
+
+function applyFilters() {
+    // Apply filters and re-render calendar
+    renderCalendar();
+    updateSummaryStats();
+}
+
+function clearAllFilters() {
+    document.getElementById('leagueFilter').value = '';
+    document.getElementById('confidenceFilter').value = '';
+    document.getElementById('predictionFilter').value = '';
+    applyFilters();
+}
+
+function updateSummaryStats() {
+    // Calculate and update summary statistics
+    let totalMatches = 0;
+    let highConfidenceMatches = 0;
+    let totalConfidence = 0;
+    let homeWins = 0, draws = 0, awayWins = 0;
+    let confidenceCount = 0;
+    
+    Object.values(calendarData).forEach(dayMatches => {
+        dayMatches.forEach(match => {
+            totalMatches++;
+            
+            if (match.prediction) {
+                totalConfidence += match.prediction.confidence;
+                confidenceCount++;
+                
+                if (match.prediction.confidence >= 70) {
+                    highConfidenceMatches++;
+                }
+                
+                switch(match.prediction.prediction) {
+                    case 'Home': homeWins++; break;
+                    case 'Draw': draws++; break;
+                    case 'Away': awayWins++; break;
+                }
+            }
+        });
+    });
+    
+    document.getElementById('totalMatches').textContent = totalMatches;
+    document.getElementById('highConfidenceMatches').textContent = highConfidenceMatches;
+    document.getElementById('avgConfidence').textContent = confidenceCount > 0 
+        ? Math.round(totalConfidence / confidenceCount) + '%' 
+        : '0%';
+    document.getElementById('predictionBreakdown').innerHTML = 
+        `<small>H: ${homeWins} | D: ${draws} | A: ${awayWins}</small>`;
+}
+
+function viewMatchDetails(fixtureId) {
+    // This would navigate to match details or show in modal
+    alert(`View details for fixture ${fixtureId}`);
+}
+
+function bookmarkAllMatches() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('matchModal'));
+    const bookmarkButtons = document.querySelectorAll('.bookmark-btn');
+    
+    bookmarkButtons.forEach(btn => {
+        btn.click();
+    });
+    
+    modal.hide();
+}
+</script>
+{% endblock %}

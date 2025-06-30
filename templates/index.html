@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}NelsonPredicts - Today's Football Predictions{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="hero-section bg-gradient text-white rounded-3 p-5 text-center">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="fas fa-brain me-3"></i>NelsonPredicts
+                </h1>
+                <p class="lead mb-4">Ultimate Football Intelligence Platform</p>
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <p class="mb-0">AI-powered predictions • Real-time confidence meters • Performance tracking • Comprehensive analysis</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Tracker -->
+    {% if performance %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-bar me-2"></i>Today's Performance Tracker
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h3 class="text-primary">{{ performance.accuracy_percentage }}%</h3>
+                                <p class="text-muted">Overall Accuracy</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-success">{{ performance.correct_predictions }}</h4>
+                                <p class="text-muted">Correct Predictions</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4>{{ performance.total_predictions }}</h4>
+                                <p class="text-muted">Total Predictions</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <small class="text-muted">
+                                    🟢 Home: {{ performance.home_win_correct }}/{{ performance.home_win_predictions }}<br>
+                                    🟡 Draw: {{ performance.draw_correct }}/{{ performance.draw_predictions }}<br>
+                                    🔴 Away: {{ performance.away_win_correct }}/{{ performance.away_win_predictions }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Today's Matches -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>
+                    <i class="fas fa-calendar-day me-2"></i>Today's Matches
+                    <small class="text-muted">({{ today.strftime('%B %d, %Y') }})</small>
+                </h2>
+                
+                <!-- Filter Controls -->
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="confidenceFilter" id="allMatches" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="allMatches">All</label>
+
+                    <input type="radio" class="btn-check" name="confidenceFilter" id="highConfidence" autocomplete="off">
+                    <label class="btn btn-outline-success" for="highConfidence">High Confidence</label>
+
+                    <input type="radio" class="btn-check" name="confidenceFilter" id="mediumConfidence" autocomplete="off">
+                    <label class="btn btn-outline-warning" for="mediumConfidence">Medium</label>
+                </div>
+            </div>
+
+            {% if fixtures %}
+            <div class="row" id="fixturesContainer">
+                {% for fixture_data in fixtures %}
+                <div class="col-lg-6 mb-3 fixture-card" data-confidence="{{ fixture_data.prediction.confidence if fixture_data.prediction else 0 }}">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <!-- Match Info Header -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h6 class="card-subtitle text-muted mb-1">
+                                        {{ fixture_data.fixture.league.name }}
+                                    </h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>{{ fixture_data.fixture.kickoff_time.strftime('%H:%M') }}
+                                        {% if fixture_data.importance_icon %}
+                                        <span class="ms-2">{{ fixture_data.importance_icon }}</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <!-- Bookmark Button -->
+                                    <button class="btn btn-sm btn-outline-warning bookmark-btn me-2" 
+                                            data-fixture-id="{{ fixture_data.fixture.id }}"
+                                            data-bookmarked="{{ fixture_data.is_bookmarked }}">
+                                        <i class="fas fa-star{% if not fixture_data.is_bookmarked %}-o{% endif %}"></i>
+                                    </button>
+                                    
+                                    <!-- Match Status -->
+                                    <span class="badge bg-secondary">{{ fixture_data.fixture.status }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Teams -->
+                            <div class="row align-items-center mb-3">
+                                <div class="col-5 text-end">
+                                    <h5 class="mb-0">{{ fixture_data.fixture.home_team.name }}</h5>
+                                    {% if not lightweight_mode %}
+                                    <small class="text-muted">Home</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-2 text-center">
+                                    <span class="badge bg-dark fs-6">VS</span>
+                                </div>
+                                <div class="col-5">
+                                    <h5 class="mb-0">{{ fixture_data.fixture.away_team.name }}</h5>
+                                    {% if not lightweight_mode %}
+                                    <small class="text-muted">Away</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Prediction Display -->
+                            {% if fixture_data.prediction %}
+                            <div class="prediction-display mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Prediction:</strong>
+                                    <span class="badge bg-{{ fixture_data.confidence_color }} fs-6">
+                                        {{ fixture_data.confidence_display }}
+                                    </span>
+                                </div>
+                                
+                                <!-- Confidence Meter -->
+                                <div class="confidence-meter">
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div class="progress-bar bg-{{ fixture_data.confidence_color }}" 
+                                             style="width: {{ fixture_data.prediction.confidence }}%"></div>
+                                    </div>
+                                    <small class="text-muted">
+                                        Confidence: {{ fixture_data.prediction.confidence }}%
+                                    </small>
+                                </div>
+
+                                <!-- Data Warnings -->
+                                {% if fixture_data.prediction.data_warnings %}
+                                <div class="mt-2">
+                                    {% for warning in fixture_data.prediction.data_warnings %}
+                                    <small class="text-warning d-block">{{ warning }}</small>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="text-center py-3">
+                                <button class="btn btn-primary btn-sm generate-prediction" 
+                                        data-fixture-id="{{ fixture_data.fixture.id }}">
+                                    <i class="fas fa-brain me-1"></i>Generate Prediction
+                                </button>
+                            </div>
+                            {% endif %}
+
+                            <!-- Match Details -->
+                            <div class="match-details">
+                                {% if fixture_data.fixture.venue %}
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ fixture_data.fixture.venue }}
+                                </small>
+                                {% endif %}
+                                {% if fixture_data.fixture.referee %}
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-user-tie me-1"></i>{{ fixture_data.fixture.referee }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Card Footer with Actions -->
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between">
+                                <button class="btn btn-sm btn-outline-primary view-details" 
+                                        data-fixture-id="{{ fixture_data.fixture.id }}">
+                                    <i class="fas fa-eye me-1"></i>Details
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary view-odds" 
+                                        data-fixture-id="{{ fixture_data.fixture.id }}">
+                                    <i class="fas fa-chart-line me-1"></i>Odds
+                                </button>
+                                <button class="btn btn-sm btn-outline-info view-h2h" 
+                                        data-fixture-id="{{ fixture_data.fixture.id }}">
+                                    <i class="fas fa-history me-1"></i>H2H
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No matches scheduled for today</h4>
+                <p class="text-muted">Check back tomorrow or view upcoming fixtures</p>
+                <a href="{{ url_for('fixtures') }}" class="btn btn-primary">
+                    <i class="fas fa-calendar-alt me-1"></i>View All Fixtures
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="row mt-5">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-brain fa-2x text-primary mb-2"></i>
+                    <h5>AI Predictions</h5>
+                    <p class="text-muted small">10+ source aggregation</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-tachometer-alt fa-2x text-success mb-2"></i>
+                    <h5>Real-time Updates</h5>
+                    <p class="text-muted small">Live scores & odds</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-bar fa-2x text-warning mb-2"></i>
+                    <h5>Performance Tracking</h5>
+                    <p class="text-muted small">Daily accuracy monitoring</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-star fa-2x text-info mb-2"></i>
+                    <h5>Bookmark System</h5>
+                    <p class="text-muted small">Save favorite matches</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Match Details Modal -->
+<div class="modal fade" id="matchDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Match Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="matchDetailsContent">
+                    <div class="text-center py-3">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter matches by confidence
+document.addEventListener('DOMContentLoaded', function() {
+    const filterButtons = document.querySelectorAll('input[name="confidenceFilter"]');
+    const fixtureCards = document.querySelectorAll('.fixture-card');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('change', function() {
+            const filter = this.id;
+            
+            fixtureCards.forEach(card => {
+                const confidence = parseFloat(card.dataset.confidence);
+                let show = true;
+                
+                switch(filter) {
+                    case 'highConfidence':
+                        show = confidence >= 70;
+                        break;
+                    case 'mediumConfidence':
+                        show = confidence >= 50 && confidence < 70;
+                        break;
+                    case 'allMatches':
+                    default:
+                        show = true;
+                        break;
+                }
+                
+                if (show) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Generate prediction buttons
+    document.querySelectorAll('.generate-prediction').forEach(button => {
+        button.addEventListener('click', function() {
+            const fixtureId = this.dataset.fixtureId;
+            generatePrediction(fixtureId, this);
+        });
+    });
+    
+    // View details buttons
+    document.querySelectorAll('.view-details').forEach(button => {
+        button.addEventListener('click', function() {
+            const fixtureId = this.dataset.fixtureId;
+            viewMatchDetails(fixtureId);
+        });
+    });
+});
+
+async function generatePrediction(fixtureId, button) {
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch(`/api/predict/${fixtureId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Reload page to show new prediction
+            location.reload();
+        } else {
+            throw new Error(data.error || 'Prediction failed');
+        }
+    } catch (error) {
+        console.error('Error generating prediction:', error);
+        button.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error';
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }, 2000);
+    }
+}
+
+async function viewMatchDetails(fixtureId) {
+    const modal = new bootstrap.Modal(document.getElementById('matchDetailsModal'));
+    const contentDiv = document.getElementById('matchDetailsContent');
+    
+    // Show loading
+    contentDiv.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    try {
+        // Here you would fetch detailed match data
+        // For now, showing a placeholder
+        contentDiv.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Detailed match analysis, statistics, and prediction breakdown will be displayed here.
+            </div>
+        `;
+    } catch (error) {
+        contentDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Failed to load match details.
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block title %}Bookmarked Matches - NelsonPredicts{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Bookmarks Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-star me-2"></i>Bookmarked Matches</h1>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" data-filter="upcoming">Upcoming</button>
+                    <button type="button" class="btn btn-outline-primary" data-filter="live">Live</button>
+                    <button type="button" class="btn btn-outline-primary" data-filter="finished">Finished</button>
+                    <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmarks Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 id="totalBookmarks">{{ fixtures|length }}</h4>
+                    <p class="text-muted">Total Bookmarks</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 id="upcomingBookmarks" class="text-primary">0</h4>
+                    <p class="text-muted">Upcoming</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 id="liveBookmarks" class="text-danger">0</h4>
+                    <p class="text-muted">Live Now</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 id="finishedBookmarks" class="text-success">0</h4>
+                    <p class="text-muted">Finished</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmarked Matches -->
+    {% if fixtures %}
+    <div class="row" id="bookmarksContainer">
+        {% for fixture_data in fixtures %}
+        <div class="col-lg-6 mb-3 bookmark-card" 
+             data-status="{{ fixture_data.fixture.status }}"
+             data-date="{{ fixture_data.fixture.kickoff_time.isoformat() }}">
+            <div class="card h-100 border-warning">
+                <div class="card-body">
+                    <!-- Match Info Header -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="card-subtitle text-muted mb-1">
+                                {{ fixture_data.fixture.league.name }}
+                            </h6>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                {{ fixture_data.fixture.kickoff_time.strftime('%d/%m/%Y %H:%M') }}
+                            </small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <!-- Remove Bookmark Button -->
+                            <button class="btn btn-sm btn-warning remove-bookmark-btn me-2" 
+                                    data-fixture-id="{{ fixture_data.fixture.id }}"
+                                    title="Remove from bookmarks">
+                                <i class="fas fa-star"></i>
+                            </button>
+                            
+                            <!-- Match Status -->
+                            {% if fixture_data.fixture.status == 'Not Started' %}
+                            <span class="badge bg-secondary">⏰ Upcoming</span>
+                            {% elif fixture_data.fixture.status == 'In Progress' or '1st Half' in fixture_data.fixture.status or '2nd Half' in fixture_data.fixture.status %}
+                            <span class="badge bg-danger">🔴 Live</span>
+                            {% elif fixture_data.fixture.status == 'Finished' %}
+                            <span class="badge bg-success">✅ Finished</span>
+                            {% else %}
+                            <span class="badge bg-warning">⏸️ {{ fixture_data.fixture.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Teams and Score -->
+                    <div class="row align-items-center mb-3">
+                        <div class="col-5 text-end">
+                            <h5 class="mb-0">{{ fixture_data.fixture.home_team.name }}</h5>
+                            <small class="text-muted">Home</small>
+                        </div>
+                        <div class="col-2 text-center">
+                            {% if fixture_data.fixture.status == 'Finished' or 'Progress' in fixture_data.fixture.status %}
+                            <div class="score-display">
+                                <h3 class="mb-0">{{ fixture_data.fixture.home_score }} - {{ fixture_data.fixture.away_score }}</h3>
+                            </div>
+                            {% else %}
+                            <span class="badge bg-dark fs-6">VS</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-5">
+                            <h5 class="mb-0">{{ fixture_data.fixture.away_team.name }}</h5>
+                            <small class="text-muted">Away</small>
+                        </div>
+                    </div>
+
+                    <!-- Prediction Display -->
+                    {% if fixture_data.prediction %}
+                    <div class="prediction-display mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Prediction:</strong>
+                            <span class="badge bg-{{ fixture_data.confidence_color }} fs-6">
+                                {{ fixture_data.confidence_display }}
+                            </span>
+                        </div>
+                        
+                        <!-- Confidence Meter -->
+                        <div class="confidence-meter">
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-{{ fixture_data.confidence_color }}" 
+                                     style="width: {{ fixture_data.prediction.confidence }}%"></div>
+                            </div>
+                            <small class="text-muted">
+                                Confidence: {{ fixture_data.prediction.confidence }}%
+                                {% if fixture_data.fixture.status == 'Finished' %}
+                                {% if fixture_data.prediction.prediction == 'Home' and fixture_data.fixture.home_score > fixture_data.fixture.away_score %}
+                                <span class="text-success ms-2">✅ Correct</span>
+                                {% elif fixture_data.prediction.prediction == 'Away' and fixture_data.fixture.away_score > fixture_data.fixture.home_score %}
+                                <span class="text-success ms-2">✅ Correct</span>
+                                {% elif fixture_data.prediction.prediction == 'Draw' and fixture_data.fixture.home_score == fixture_data.fixture.away_score %}
+                                <span class="text-success ms-2">✅ Correct</span>
+                                {% else %}
+                                <span class="text-danger ms-2">❌ Incorrect</span>
+                                {% endif %}
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Bookmark Date -->
+                    <div class="bookmark-info">
+                        <small class="text-muted">
+                            <i class="fas fa-star me-1"></i>Bookmarked
+                            {% if fixture_data.fixture.importance_level %}
+                            <span class="ms-2">
+                                {% if fixture_data.fixture.importance_level == 'Derby' %}🔥{% elif fixture_data.fixture.importance_level == 'Relegation' %}❗{% elif 'Final' in fixture_data.fixture.importance_level %}🏆{% endif %}
+                                {{ fixture_data.fixture.importance_level }} Match
+                            </span>
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Card Footer with Actions -->
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between">
+                        <a href="/team/{{ fixture_data.fixture.home_team.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-users me-1"></i>{{ fixture_data.fixture.home_team.name[:10] }}...
+                        </a>
+                        
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-info match-details-btn" 
+                                    data-fixture-id="{{ fixture_data.fixture.id }}">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary share-btn" 
+                                    data-fixture-id="{{ fixture_data.fixture.id }}">
+                                <i class="fas fa-share"></i>
+                            </button>
+                        </div>
+                        
+                        <a href="/team/{{ fixture_data.fixture.away_team.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-users me-1"></i>{{ fixture_data.fixture.away_team.name[:10] }}...
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Bulk Actions</h6>
+                            <small class="text-muted">Manage multiple bookmarks at once</small>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-warning" id="selectAllBtn">
+                                <i class="fas fa-check-square me-1"></i>Select All
+                            </button>
+                            <button class="btn btn-outline-danger" id="removeSelectedBtn" disabled>
+                                <i class="fas fa-trash me-1"></i>Remove Selected
+                            </button>
+                            <button class="btn btn-outline-info" id="exportBookmarksBtn">
+                                <i class="fas fa-download me-1"></i>Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i class="fas fa-star fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No bookmarked matches yet</h4>
+        <p class="text-muted">Start bookmarking matches to keep track of your favorites</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary me-2">
+            <i class="fas fa-home me-1"></i>Browse Today's Matches
+        </a>
+        <a href="{{ url_for('fixtures') }}" class="btn btn-outline-primary">
+            <i class="fas fa-calendar-alt me-1"></i>View All Fixtures
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="shareUrl" class="form-label">Share URL</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="shareUrl" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="copyUrlBtn">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" id="shareTwitterBtn">
+                        <i class="fab fa-twitter me-1"></i>Twitter
+                    </button>
+                    <button class="btn btn-success" id="shareWhatsAppBtn">
+                        <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                    </button>
+                    <button class="btn btn-info" id="shareTelegramBtn">
+                        <i class="fab fa-telegram me-1"></i>Telegram
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize bookmark stats
+    updateBookmarkStats();
+    
+    // Filter buttons
+    document.querySelectorAll('[data-filter]').forEach(button => {
+        button.addEventListener('click', function() {
+            const filter = this.dataset.filter;
+            filterBookmarks(filter);
+            
+            // Update active button
+            document.querySelectorAll('[data-filter]').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // Remove bookmark buttons
+    document.querySelectorAll('.remove-bookmark-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const fixtureId = this.dataset.fixtureId;
+            removeBookmark(fixtureId, this);
+        });
+    });
+    
+    // Share buttons
+    document.querySelectorAll('.share-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const fixtureId = this.dataset.fixtureId;
+            showShareModal(fixtureId);
+        });
+    });
+    
+    // Bulk actions
+    document.getElementById('selectAllBtn').addEventListener('click', selectAllBookmarks);
+    document.getElementById('removeSelectedBtn').addEventListener('click', removeSelectedBookmarks);
+    document.getElementById('exportBookmarksBtn').addEventListener('click', exportBookmarks);
+    
+    // Copy URL button
+    document.getElementById('copyUrlBtn').addEventListener('click', copyShareUrl);
+});
+
+function updateBookmarkStats() {
+    const cards = document.querySelectorAll('.bookmark-card');
+    let upcoming = 0, live = 0, finished = 0;
+    
+    cards.forEach(card => {
+        const status = card.dataset.status;
+        const date = new Date(card.dataset.date);
+        const now = new Date();
+        
+        if (status === 'Finished') {
+            finished++;
+        } else if (status === 'In Progress' || status.includes('Half')) {
+            live++;
+        } else if (date > now) {
+            upcoming++;
+        }
+    });
+    
+    document.getElementById('upcomingBookmarks').textContent = upcoming;
+    document.getElementById('liveBookmarks').textContent = live;
+    document.getElementById('finishedBookmarks').textContent = finished;
+}
+
+function filterBookmarks(filter) {
+    const cards = document.querySelectorAll('.bookmark-card');
+    const now = new Date();
+    
+    cards.forEach(card => {
+        const status = card.dataset.status;
+        const date = new Date(card.dataset.date);
+        let show = true;
+        
+        switch(filter) {
+            case 'upcoming':
+                show = status === 'Not Started' && date > now;
+                break;
+            case 'live':
+                show = status === 'In Progress' || status.includes('Half');
+                break;
+            case 'finished':
+                show = status === 'Finished';
+                break;
+            case 'all':
+            default:
+                show = true;
+                break;
+        }
+        
+        card.style.display = show ? 'block' : 'none';
+    });
+}
+
+async function removeBookmark(fixtureId, buttonElement) {
+    try {
+        const response = await fetch(`/api/bookmark/${fixtureId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            // Remove card with animation
+            const card = buttonElement.closest('.bookmark-card');
+            card.style.transition = 'opacity 0.3s ease';
+            card.style.opacity = '0';
+            
+            setTimeout(() => {
+                card.remove();
+                updateBookmarkStats();
+                
+                // Check if no bookmarks left
+                if (document.querySelectorAll('.bookmark-card').length === 0) {
+                    location.reload();
+                }
+            }, 300);
+            
+            // Update button state
+            buttonElement.innerHTML = '<i class="fas fa-star-o"></i>';
+            buttonElement.classList.remove('btn-warning');
+            buttonElement.classList.add('btn-outline-warning');
+        } else {
+            throw new Error('Failed to remove bookmark');
+        }
+    } catch (error) {
+        console.error('Error removing bookmark:', error);
+        alert('Failed to remove bookmark');
+    }
+}
+
+function selectAllBookmarks() {
+    const checkboxes = document.querySelectorAll('.bookmark-checkbox');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const removeSelectedBtn = document.getElementById('removeSelectedBtn');
+    
+    if (checkboxes.length === 0) {
+        // Add checkboxes if they don't exist
+        document.querySelectorAll('.bookmark-card').forEach(card => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input bookmark-checkbox position-absolute';
+            checkbox.style.top = '10px';
+            checkbox.style.left = '10px';
+            checkbox.style.zIndex = '10';
+            card.style.position = 'relative';
+            card.appendChild(checkbox);
+            
+            checkbox.addEventListener('change', function() {
+                const checkedBoxes = document.querySelectorAll('.bookmark-checkbox:checked');
+                removeSelectedBtn.disabled = checkedBoxes.length === 0;
+            });
+        });
+        
+        selectAllBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel Selection';
+        selectAllBtn.classList.remove('btn-outline-warning');
+        selectAllBtn.classList.add('btn-outline-secondary');
+    } else {
+        // Remove checkboxes
+        checkboxes.forEach(checkbox => checkbox.remove());
+        selectAllBtn.innerHTML = '<i class="fas fa-check-square me-1"></i>Select All';
+        selectAllBtn.classList.remove('btn-outline-secondary');
+        selectAllBtn.classList.add('btn-outline-warning');
+        removeSelectedBtn.disabled = true;
+    }
+}
+
+async function removeSelectedBookmarks() {
+    const checkedBoxes = document.querySelectorAll('.bookmark-checkbox:checked');
+    if (checkedBoxes.length === 0) return;
+    
+    if (!confirm(`Remove ${checkedBoxes.length} bookmarked matches?`)) return;
+    
+    const removePromises = Array.from(checkedBoxes).map(async (checkbox) => {
+        const card = checkbox.closest('.bookmark-card');
+        const removeBtn = card.querySelector('.remove-bookmark-btn');
+        const fixtureId = removeBtn.dataset.fixtureId;
+        
+        try {
+            const response = await fetch(`/api/bookmark/${fixtureId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                card.remove();
+                return true;
+            }
+        } catch (error) {
+            console.error('Error removing bookmark:', error);
+        }
+        return false;
+    });
+    
+    const results = await Promise.all(removePromises);
+    const successCount = results.filter(Boolean).length;
+    
+    updateBookmarkStats();
+    document.getElementById('selectAllBtn').click(); // Cancel selection mode
+    
+    if (successCount === checkedBoxes.length) {
+        alert(`Successfully removed ${successCount} bookmarks`);
+    } else {
+        alert(`Removed ${successCount} out of ${checkedBoxes.length} bookmarks`);
+    }
+    
+    // Reload if no bookmarks left
+    if (document.querySelectorAll('.bookmark-card').length === 0) {
+        location.reload();
+    }
+}
+
+function exportBookmarks() {
+    const bookmarks = [];
+    document.querySelectorAll('.bookmark-card').forEach(card => {
+        const teams = card.querySelectorAll('h5');
+        const league = card.querySelector('.card-subtitle').textContent;
+        const date = card.dataset.date;
+        
+        bookmarks.push({
+            league: league.trim(),
+            home_team: teams[0].textContent.trim(),
+            away_team: teams[1].textContent.trim(),
+            date: date,
+            status: card.dataset.status
+        });
+    });
+    
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookmarks, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "nelson_predicts_bookmarks.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function showShareModal(fixtureId) {
+    const shareUrl = `${window.location.origin}/fixture/${fixtureId}`;
+    document.getElementById('shareUrl').value = shareUrl;
+    
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+}
+
+function copyShareUrl() {
+    const shareUrl = document.getElementById('shareUrl');
+    shareUrl.select();
+    shareUrl.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    
+    const copyBtn = document.getElementById('copyUrlBtn');
+    const originalHTML = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+    copyBtn.classList.add('btn-success');
+    copyBtn.classList.remove('btn-outline-secondary');
+    
+    setTimeout(() => {
+        copyBtn.innerHTML = originalHTML;
+        copyBtn.classList.remove('btn-success');
+        copyBtn.classList.add('btn-outline-secondary');
+    }, 2000);
+}
+</script>
+{% endblock %}

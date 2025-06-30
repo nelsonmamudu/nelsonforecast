@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}Fixtures & Results - NelsonPredicts{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-calendar-alt me-2"></i>Fixtures & Results</h1>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" data-filter="today">Today</button>
+                    <button type="button" class="btn btn-outline-primary" data-filter="tomorrow">Tomorrow</button>
+                    <button type="button" class="btn btn-outline-primary" data-filter="week">This Week</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-filter me-2"></i>Advanced Filters
+            </h5>
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="league" class="form-label">League</label>
+                    <select class="form-select" id="league" name="league">
+                        <option value="">All Leagues</option>
+                        {% for league in leagues %}
+                        <option value="{{ league.id }}" {% if current_filters.league == league.id|string %}selected{% endif %}>
+                            {{ league.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="team" class="form-label">Team</label>
+                    <select class="form-select" id="team" name="team">
+                        <option value="">All Teams</option>
+                        {% for team in teams %}
+                        <option value="{{ team.id }}" {% if current_filters.team == team.id|string %}selected{% endif %}>
+                            {{ team.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="date" class="form-label">Date Range</label>
+                    <select class="form-select" id="date" name="date">
+                        <option value="today" {% if current_filters.date == 'today' %}selected{% endif %}>Today</option>
+                        <option value="tomorrow" {% if current_filters.date == 'tomorrow' %}selected{% endif %}>Tomorrow</option>
+                        <option value="week" {% if current_filters.date == 'week' %}selected{% endif %}>This Week</option>
+                        <option value="all" {% if current_filters.date == 'all' %}selected{% endif %}>All</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All</option>
+                        <option value="Not Started" {% if current_filters.status == 'Not Started' %}selected{% endif %}>Not Started</option>
+                        <option value="In Progress" {% if current_filters.status == 'In Progress' %}selected{% endif %}>Live</option>
+                        <option value="Finished" {% if current_filters.status == 'Finished' %}selected{% endif %}>Finished</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>Filter
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fixtures List -->
+    {% if fixtures %}
+    <div class="row">
+        {% for fixture in fixtures %}
+        <div class="col-lg-6 mb-3">
+            <div class="card fixture-card h-100">
+                <div class="card-body">
+                    <!-- Match Header -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="text-muted mb-1">{{ fixture.league.name }}</h6>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                {{ fixture.kickoff_time.strftime('%d/%m/%Y %H:%M') }}
+                            </small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <!-- Match Status with Icon -->
+                            {% if fixture.status == 'Not Started' %}
+                            <span class="badge bg-secondary">⏰ {{ fixture.status }}</span>
+                            {% elif fixture.status == 'In Progress' or fixture.status == '1st Half' or fixture.status == '2nd Half' %}
+                            <span class="badge bg-danger">🔴 Live</span>
+                            {% elif fixture.status == 'Finished' %}
+                            <span class="badge bg-success">✅ {{ fixture.status }}</span>
+                            {% else %}
+                            <span class="badge bg-warning">⏸️ {{ fixture.status }}</span>
+                            {% endif %}
+                            
+                            <!-- Bookmark Button -->
+                            <button class="btn btn-sm btn-outline-warning bookmark-btn ms-2" 
+                                    data-fixture-id="{{ fixture.id }}">
+                                <i class="fas fa-star"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Teams and Score -->
+                    <div class="row align-items-center mb-3">
+                        <div class="col-4 text-end">
+                            <h5 class="mb-0">{{ fixture.home_team.name }}</h5>
+                            <small class="text-muted">Home</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            {% if fixture.status == 'Finished' or 'Progress' in fixture.status %}
+                            <div class="score-display">
+                                <h3 class="mb-0">{{ fixture.home_score }} - {{ fixture.away_score }}</h3>
+                            </div>
+                            {% else %}
+                            <span class="badge bg-dark fs-6">VS</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-4">
+                            <h5 class="mb-0">{{ fixture.away_team.name }}</h5>
+                            <small class="text-muted">Away</small>
+                        </div>
+                    </div>
+
+                    <!-- Prediction Info -->
+                    {% set prediction = fixture.predictions[0] if fixture.predictions else None %}
+                    {% if prediction %}
+                    <div class="prediction-info mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Prediction:</small>
+                            {% if prediction.confidence >= 70 %}
+                            <span class="badge bg-success">🟢 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                            {% elif prediction.confidence >= 50 %}
+                            <span class="badge bg-warning">🟡 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                            {% else %}
+                            <span class="badge bg-danger">🔴 {{ prediction.confidence }}% {{ prediction.prediction }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="progress mt-1" style="height: 4px;">
+                            {% if prediction.confidence >= 70 %}
+                            <div class="progress-bar bg-success" style="width: {{ prediction.confidence }}%"></div>
+                            {% elif prediction.confidence >= 50 %}
+                            <div class="progress-bar bg-warning" style="width: {{ prediction.confidence }}%"></div>
+                            {% else %}
+                            <div class="progress-bar bg-danger" style="width: {{ prediction.confidence }}%"></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Match Details -->
+                    <div class="match-details">
+                        {% if fixture.venue %}
+                        <small class="text-muted d-block">
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ fixture.venue }}
+                        </small>
+                        {% endif %}
+                        {% if fixture.importance_level %}
+                        <small class="text-warning d-block">
+                            {% if fixture.importance_level == 'Derby' %}🔥{% elif fixture.importance_level == 'Relegation' %}❗{% elif 'Final' in fixture.importance_level %}🏆{% endif %}
+                            {{ fixture.importance_level }} Match
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Card Footer -->
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between">
+                        <a href="/team/{{ fixture.home_team.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-users me-1"></i>{{ fixture.home_team.name }}
+                        </a>
+                        <button class="btn btn-sm btn-outline-info match-details-btn" 
+                                data-fixture-id="{{ fixture.id }}">
+                            <i class="fas fa-info-circle me-1"></i>Details
+                        </button>
+                        <a href="/team/{{ fixture.away_team.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-users me-1"></i>{{ fixture.away_team.name }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-center mt-4">
+        <nav>
+            <ul class="pagination">
+                <li class="page-item disabled">
+                    <span class="page-link">Previous</span>
+                </li>
+                <li class="page-item active">
+                    <span class="page-link">1</span>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#">2</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#">3</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No fixtures found</h4>
+        <p class="text-muted">Try adjusting your filters or check back later</p>
+        <a href="{{ url_for('fixtures') }}" class="btn btn-primary">
+            <i class="fas fa-refresh me-1"></i>Reset Filters
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Match Details Modal -->
+<div class="modal fade" id="matchDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Match Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="matchDetailsContent">
+                    <!-- Content loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quick filter buttons
+    document.querySelectorAll('[data-filter]').forEach(button => {
+        button.addEventListener('click', function() {
+            const filter = this.dataset.filter;
+            const url = new URL(window.location);
+            url.searchParams.set('date', filter);
+            window.location.href = url.toString();
+        });
+    });
+
+    // Match details buttons
+    document.querySelectorAll('.match-details-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const fixtureId = this.dataset.fixtureId;
+            showMatchDetails(fixtureId);
+        });
+    });
+});
+
+function showMatchDetails(fixtureId) {
+    const modal = new bootstrap.Modal(document.getElementById('matchDetailsModal'));
+    const content = document.getElementById('matchDetailsContent');
+    
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading match analysis...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Simulate loading detailed match data
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Comprehensive match analysis including predictions, team statistics, 
+                head-to-head records, and betting odds will be displayed here.
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Team Statistics</h6>
+                    <p class="text-muted">Detailed team performance metrics and recent form</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Prediction Breakdown</h6>
+                    <p class="text-muted">AI consensus and confidence factors</p>
+                </div>
+            </div>
+        `;
+    }, 1500);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block title %}{{ player.name if player else 'Player' }} - NelsonPredicts{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if player %}
+    <!-- Player Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card player-header">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            {% if player.photo_url and not lightweight_mode %}
+                            <img src="{{ player.photo_url }}" alt="{{ player.name }}" class="player-photo rounded-circle mb-2" style="width: 120px; height: 120px;">
+                            {% else %}
+                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 120px; height: 120px;">
+                                <i class="fas fa-user fa-3x text-white"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h1 class="mb-2">{{ player.name }}</h1>
+                            <div class="player-info">
+                                {% if player.position %}
+                                <span class="badge bg-primary fs-6 me-2">{{ player.position }}</span>
+                                {% endif %}
+                                {% if player.jersey_number %}
+                                <span class="badge bg-secondary fs-6 me-2">#{{ player.jersey_number }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2">
+                                <p class="text-muted mb-1">
+                                    {% if player.age %}
+                                    <i class="fas fa-birthday-cake me-1"></i>{{ player.age }} years old
+                                    {% endif %}
+                                    {% if player.nationality %}
+                                    <span class="ms-3"><i class="fas fa-flag me-1"></i>{{ player.nationality }}</span>
+                                    {% endif %}
+                                </p>
+                                <p class="text-muted mb-1">
+                                    {% if player.height %}
+                                    <i class="fas fa-arrows-alt-v me-1"></i>{{ player.height }}
+                                    {% endif %}
+                                    {% if player.weight %}
+                                    <span class="ms-3"><i class="fas fa-weight me-1"></i>{{ player.weight }}</span>
+                                    {% endif %}
+                                </p>
+                                {% if player.team %}
+                                <p class="text-muted mb-0">
+                                    <i class="fas fa-shield-alt me-1"></i>
+                                    <a href="/team/{{ player.team.id }}" class="text-decoration-none">{{ player.team.name }}</a>
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            {% if stats %}
+                            {% set latest_stats = stats[0] %}
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Season {{ latest_stats.season }}</h5>
+                                    <div class="row">
+                                        <div class="col-4">
+                                            <div class="stat-item">
+                                                <h4 class="text-primary mb-0">{{ latest_stats.appearances }}</h4>
+                                                <small class="text-muted">Apps</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="stat-item">
+                                                <h4 class="text-success mb-0">{{ latest_stats.goals }}</h4>
+                                                <small class="text-muted">Goals</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="stat-item">
+                                                <h4 class="text-info mb-0">{{ latest_stats.assists }}</h4>
+                                                <small class="text-muted">Assists</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Statistics -->
+        <div class="col-lg-8">
+            <!-- Season Statistics -->
+            {% if stats %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Career Statistics</h5>
+                        <select class="form-select w-auto" id="seasonSelect">
+                            {% for stat in stats %}
+                            <option value="{{ stat.season }}">{{ stat.season }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% for stat in stats %}
+                    <div class="season-stats" id="stats-{{ stat.season }}" {% if not loop.first %}style="display: none;"{% endif %}>
+                        <div class="row">
+                            <!-- Performance Stats -->
+                            <div class="col-md-6">
+                                <h6>Performance</h6>
+                                <div class="row mb-3">
+                                    <div class="col-4 text-center">
+                                        <div class="stat-box bg-primary text-white rounded p-3">
+                                            <div class="h3 mb-0">{{ stat.appearances }}</div>
+                                            <small>Appearances</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4 text-center">
+                                        <div class="stat-box bg-success text-white rounded p-3">
+                                            <div class="h3 mb-0">{{ stat.goals }}</div>
+                                            <small>Goals</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4 text-center">
+                                        <div class="stat-box bg-info text-white rounded p-3">
+                                            <div class="h3 mb-0">{{ stat.assists }}</div>
+                                            <small>Assists</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Minutes and Averages -->
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Minutes Played:</span>
+                                            <strong>{{ "{:,}".format(stat.minutes_played) }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Avg per Game:</span>
+                                            <strong>{{ "%.1f"|format(stat.minutes_played / stat.appearances if stat.appearances > 0 else 0) }} min</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {% if stat.pass_accuracy > 0 %}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Pass Accuracy</span>
+                                        <strong>{{ "%.1f"|format(stat.pass_accuracy) }}%</strong>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-warning" style="width: {{ stat.pass_accuracy }}%"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Discipline -->
+                            <div class="col-md-6">
+                                <h6>Discipline</h6>
+                                <div class="row mb-3">
+                                    <div class="col-6 text-center">
+                                        <div class="stat-box bg-warning text-white rounded p-3">
+                                            <div class="h3 mb-0">{{ stat.yellow_cards }}</div>
+                                            <small>Yellow Cards</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <div class="stat-box bg-danger text-white rounded p-3">
+                                            <div class="h3 mb-0">{{ stat.red_cards }}</div>
+                                            <small>Red Cards</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Goals per Game Ratio -->
+                                {% if stat.goals > 0 and stat.appearances > 0 %}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Goals per Game</span>
+                                        <strong>{{ "%.2f"|format(stat.goals / stat.appearances) }}</strong>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" style="width: {{ min(100, (stat.goals / stat.appearances) * 100) }}%"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Assists per Game Ratio -->
+                                {% if stat.assists > 0 and stat.appearances > 0 %}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Assists per Game</span>
+                                        <strong>{{ "%.2f"|format(stat.assists / stat.appearances) }}</strong>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" style="width: {{ min(100, (stat.assists / stat.appearances) * 100) }}%"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Performance Chart -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Performance Trend</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Injuries and Career Info -->
+        <div class="col-lg-4">
+            <!-- Injury/Suspension Status -->
+            {% if injuries %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Injury/Suspension History</h5>
+                </div>
+                <div class="card-body">
+                    {% for injury in injuries %}
+                    <div class="injury-item mb-3 p-2 border rounded">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">
+                                    {% if injury.type == 'Injury' %}
+                                    <i class="fas fa-plus-circle text-danger me-1"></i>
+                                    {% else %}
+                                    <i class="fas fa-ban text-warning me-1"></i>
+                                    {% endif %}
+                                    {{ injury.type }}
+                                </h6>
+                                <p class="text-muted mb-1 small">{{ injury.reason }}</p>
+                                <small class="text-muted">
+                                    {{ injury.created_at.strftime('%d/%m/%Y') }}
+                                    {% if injury.estimated_return %}
+                                    - Expected return: {{ injury.estimated_return.strftime('%d/%m/%Y') }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <span class="badge {% if injury.status == 'Out' %}bg-danger{% elif injury.status == 'Doubtful' %}bg-warning{% else %}bg-success{% endif %}">
+                                {{ injury.status }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Career Path -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-road me-2"></i>Career Path</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% if player.team %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">{{ player.team.name }}</h6>
+                                <small class="text-muted">Current Club</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Add more career history items here -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-secondary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Career History</h6>
+                                <small class="text-muted">Transfer data will be displayed here</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Achievements</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-3">
+                        <i class="fas fa-medal fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">Achievement data will be displayed here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Error State -->
+    <div class="text-center py-5">
+        <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">{{ error if error else 'Player not found' }}</h4>
+        <p class="text-muted">The requested player could not be loaded</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-home me-1"></i>Back to Home
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Season selector
+    const seasonSelect = document.getElementById('seasonSelect');
+    if (seasonSelect) {
+        seasonSelect.addEventListener('change', function() {
+            // Hide all season stats
+            document.querySelectorAll('.season-stats').forEach(stats => {
+                stats.style.display = 'none';
+            });
+            
+            // Show selected season
+            const selectedSeason = this.value;
+            const selectedStats = document.getElementById(`stats-${selectedSeason}`);
+            if (selectedStats) {
+                selectedStats.style.display = 'block';
+            }
+        });
+    }
+    
+    // Performance Chart
+    const ctx = document.getElementById('performanceChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [{% for stat in stats %}'{{ stat.season }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Goals',
+                    data: [{% for stat in stats %}{{ stat.goals }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                }, {
+                    label: 'Assists',
+                    data: [{% for stat in stats %}{{ stat.assists }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Goals and Assists by Season'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.name if team else 'Team' }} - NelsonPredicts{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if team %}
+    <!-- Team Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card team-header">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            {% if team.logo_url and not lightweight_mode %}
+                            <img src="{{ team.logo_url }}" alt="{{ team.name }} logo" class="team-logo mb-2" style="max-height: 80px;">
+                            {% else %}
+                            <i class="fas fa-shield-alt fa-3x text-primary mb-2"></i>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h1 class="mb-1">{{ team.name }}</h1>
+                            <p class="text-muted mb-2">
+                                {% if team.country %}
+                                <i class="fas fa-flag me-1"></i>{{ team.country }}
+                                {% endif %}
+                                {% if team.founded %}
+                                <span class="ms-3"><i class="fas fa-calendar me-1"></i>Founded {{ team.founded }}</span>
+                                {% endif %}
+                            </p>
+                            {% if team.venue_name %}
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ team.venue_name }}
+                                {% if team.venue_capacity %}
+                                ({{ "{:,}".format(team.venue_capacity) }} capacity)
+                                {% endif %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            {% if standing %}
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">League Position</h5>
+                                    <h2 class="text-primary">{{ standing.position }}</h2>
+                                    <p class="mb-0">{{ standing.points }} points</p>
+                                    <small class="text-muted">{{ standing.wins }}W {{ standing.draws }}D {{ standing.losses }}L</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Squad and Stats -->
+        <div class="col-lg-8">
+            <!-- Squad Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Squad</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="squadFilter" id="allPlayers" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="allPlayers">All</label>
+                            <input type="radio" class="btn-check" name="squadFilter" id="goalkeepers" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="goalkeepers">GK</label>
+                            <input type="radio" class="btn-check" name="squadFilter" id="defenders" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="defenders">DEF</label>
+                            <input type="radio" class="btn-check" name="squadFilter" id="midfielders" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="midfielders">MID</label>
+                            <input type="radio" class="btn-check" name="squadFilter" id="forwards" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="forwards">FWD</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if players %}
+                    <div class="row" id="squadContainer">
+                        {% for player in players %}
+                        <div class="col-md-6 mb-3 player-card" data-position="{{ player.position }}">
+                            <div class="card h-100">
+                                <div class="card-body p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-3">
+                                            {% if player.photo_url and not lightweight_mode %}
+                                            <img src="{{ player.photo_url }}" alt="{{ player.name }}" class="rounded-circle player-photo" style="width: 50px; height: 50px;">
+                                            {% else %}
+                                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                                <i class="fas fa-user text-white"></i>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-9">
+                                            <h6 class="mb-1">
+                                                <a href="/player/{{ player.id }}" class="text-decoration-none">
+                                                    {{ player.name }}
+                                                </a>
+                                            </h6>
+                                            <p class="text-muted mb-1 small">
+                                                {% if player.jersey_number %}#{{ player.jersey_number }} • {% endif %}
+                                                {{ player.position }}
+                                                {% if player.age %} • {{ player.age }}y{% endif %}
+                                            </p>
+                                            <p class="text-muted mb-0 small">
+                                                {% if player.nationality %}
+                                                <i class="fas fa-flag me-1"></i>{{ player.nationality }}
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No squad information available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Team Statistics -->
+            {% if standing %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Team Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Overall Form</h6>
+                            <div class="row mb-3">
+                                <div class="col-4 text-center">
+                                    <div class="stat-box bg-success text-white rounded p-2">
+                                        <div class="h4 mb-0">{{ standing.wins }}</div>
+                                        <small>Wins</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="stat-box bg-warning text-white rounded p-2">
+                                        <div class="h4 mb-0">{{ standing.draws }}</div>
+                                        <small>Draws</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="stat-box bg-danger text-white rounded p-2">
+                                        <div class="h4 mb-0">{{ standing.losses }}</div>
+                                        <small>Losses</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Goals</h6>
+                            <div class="row mb-3">
+                                <div class="col-6 text-center">
+                                    <div class="stat-box bg-primary text-white rounded p-2">
+                                        <div class="h4 mb-0">{{ standing.goals_for }}</div>
+                                        <small>Goals For</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 text-center">
+                                    <div class="stat-box bg-secondary text-white rounded p-2">
+                                        <div class="h4 mb-0">{{ standing.goals_against }}</div>
+                                        <small>Goals Against</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Home vs Away Form Toggle -->
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <input type="radio" class="btn-check" name="formType" id="overallForm" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="overallForm">Overall</label>
+                        <input type="radio" class="btn-check" name="formType" id="homeForm" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="homeForm">Home</label>
+                        <input type="radio" class="btn-check" name="formType" id="awayForm" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="awayForm">Away</label>
+                    </div>
+
+                    <div id="formStats">
+                        <!-- Overall stats shown by default -->
+                        <div class="form-stats" id="overallStats">
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: {{ (standing.wins / (standing.wins + standing.draws + standing.losses) * 100) if (standing.wins + standing.draws + standing.losses) > 0 else 0 }}%"></div>
+                                <div class="progress-bar bg-warning" style="width: {{ (standing.draws / (standing.wins + standing.draws + standing.losses) * 100) if (standing.wins + standing.draws + standing.losses) > 0 else 0 }}%"></div>
+                                <div class="progress-bar bg-danger" style="width: {{ (standing.losses / (standing.wins + standing.draws + standing.losses) * 100) if (standing.wins + standing.draws + standing.losses) > 0 else 0 }}%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>Win Rate: {{ "%.1f"|format((standing.wins / (standing.wins + standing.draws + standing.losses) * 100) if (standing.wins + standing.draws + standing.losses) > 0 else 0) }}%</span>
+                                <span>Goal Difference: {{ standing.goal_difference }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column - Fixtures and Recent Results -->
+        <div class="col-lg-4">
+            <!-- Recent Fixtures -->
+            {% if recent_fixtures %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Results</h5>
+                </div>
+                <div class="card-body">
+                    {% for fixture in recent_fixtures %}
+                    <div class="fixture-item mb-2 p-2 border rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <small class="text-muted d-block">{{ fixture.kickoff_time.strftime('%d/%m') }}</small>
+                                <div class="fw-bold">
+                                    {% if fixture.home_team.id == team.id %}
+                                    {{ fixture.home_team.name }} {{ fixture.home_score }}-{{ fixture.away_score }} {{ fixture.away_team.name }}
+                                    {% else %}
+                                    {{ fixture.home_team.name }} {{ fixture.home_score }}-{{ fixture.away_score }} {{ fixture.away_team.name }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div>
+                                {% if fixture.home_team.id == team.id %}
+                                    {% if fixture.home_score > fixture.away_score %}
+                                    <span class="badge bg-success">W</span>
+                                    {% elif fixture.home_score == fixture.away_score %}
+                                    <span class="badge bg-warning">D</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">L</span>
+                                    {% endif %}
+                                {% else %}
+                                    {% if fixture.away_score > fixture.home_score %}
+                                    <span class="badge bg-success">W</span>
+                                    {% elif fixture.home_score == fixture.away_score %}
+                                    <span class="badge bg-warning">D</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">L</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Upcoming Fixtures -->
+            {% if upcoming_fixtures %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Upcoming Fixtures</h5>
+                </div>
+                <div class="card-body">
+                    {% for fixture in upcoming_fixtures %}
+                    <div class="fixture-item mb-2 p-2 border rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <small class="text-muted d-block">
+                                    {{ fixture.kickoff_time.strftime('%d/%m %H:%M') }}
+                                    <span class="badge bg-secondary ms-1">{{ fixture.league.name }}</span>
+                                </small>
+                                <div class="fw-bold">
+                                    {{ fixture.home_team.name }} vs {{ fixture.away_team.name }}
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary bookmark-btn" 
+                                        data-fixture-id="{{ fixture.id }}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Error State -->
+    <div class="text-center py-5">
+        <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">{{ error if error else 'Team not found' }}</h4>
+        <p class="text-muted">The requested team could not be loaded</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-home me-1"></i>Back to Home
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Squad position filter
+    document.querySelectorAll('input[name="squadFilter"]').forEach(input => {
+        input.addEventListener('change', function() {
+            const filter = this.id;
+            const players = document.querySelectorAll('.player-card');
+            
+            players.forEach(player => {
+                const position = player.dataset.position;
+                let show = true;
+                
+                switch(filter) {
+                    case 'goalkeepers':
+                        show = position && position.includes('GK');
+                        break;
+                    case 'defenders':
+                        show = position && (position.includes('CB') || position.includes('LB') || position.includes('RB') || position.includes('DEF'));
+                        break;
+                    case 'midfielders':
+                        show = position && (position.includes('CM') || position.includes('CDM') || position.includes('CAM') || position.includes('MID'));
+                        break;
+                    case 'forwards':
+                        show = position && (position.includes('LW') || position.includes('RW') || position.includes('ST') || position.includes('CF') || position.includes('FWD'));
+                        break;
+                    default:
+                        show = true;
+                }
+                
+                player.style.display = show ? 'block' : 'none';
+            });
+        });
+    });
+    
+    // Form type toggle
+    document.querySelectorAll('input[name="formType"]').forEach(input => {
+        input.addEventListener('change', function() {
+            // Here you would load different form statistics
+            // For now, we'll just show a message
+            console.log('Form type changed to:', this.id);
+        });
+    });
+});
+</script>
+{% endblock %}
